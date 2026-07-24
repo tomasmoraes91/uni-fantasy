@@ -1,6 +1,22 @@
 # UniFantasy 🏆
 
-A university sports fantasy league MVP — fantasy team building + match predictions across **futsal, basketball, and volleyball**, all powered by React + Firebase.
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+> **Fantasy sports platform** — build your team, predict matches, climb the ranking.
+> Born for university sports and **battle-tested in a World Cup pool with 100+ real users.**
+
+Fantasy team building + match predictions across **futsal, basketball, and volleyball** (plus a World Cup mode), all powered by React + Firebase.
+
+🔗 **Live demo:** _coming soon_ (deploy on Vercel — see below — then drop the link here)
+
+<!--
+📸 TIP (Tomás): add a screenshot or GIF of the app here — recruiters love a visual.
+   Put an image in a "docs" folder (e.g. docs/screenshot.png), then uncomment the line below.
+-->
+<!-- ![UniFantasy screenshot](docs/screenshot.png) -->
 
 ## ✨ Features
 
