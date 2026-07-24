@@ -3,63 +3,63 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=flat&logo=react&logoColor=black)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
 ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)
-![License](https://img.shields.io/badge/license-MIT-blue)
+![Licença](https://img.shields.io/badge/licença-MIT-blue)
 
-> **Fantasy sports platform** — build your team, predict matches, climb the ranking.
-> Born for university sports and **battle-tested in a World Cup pool with 100+ real users.**
+> **Plataforma de fantasy game esportivo** — monte seu time, faça palpites nas partidas e suba no ranking.
+> Criado para esportes universitários e **validado num bolão da Copa do Mundo com mais de 100 usuários reais.**
 
-Fantasy team building + match predictions across **futsal, basketball, and volleyball** (plus a World Cup mode), all powered by React + Firebase.
+Montagem de times de fantasy + palpites de partidas em **futsal, basquete e vôlei** (mais um modo Copa do Mundo), tudo feito com React + Firebase.
 
-🔗 **Live demo:** **<https://capitola.web.app/>**
+🔗 **Demo ao vivo:** **<https://capitola.web.app/>**
 
 <!--
-📸 TIP (Tomás): add a screenshot or GIF of the app here — recruiters love a visual.
-   Put an image in a "docs" folder (e.g. docs/screenshot.png), then uncomment the line below.
+📸 DICA (Tomás): adicione um print ou GIF do app aqui — é o que mais chama recrutador.
+   Coloque a imagem numa pasta "docs" (ex: docs/screenshot.png) e descomente a linha abaixo.
 -->
-<!-- ![UniFantasy screenshot](docs/screenshot.png) -->
+<!-- ![Tela do UniFantasy](docs/screenshot.png) -->
 
-## ✨ Features
+## ✨ Funcionalidades
 
-- 🔐 Email/password auth via Firebase Auth
-- ⚽ 🏀 🏐 Three sports, four teams each
-- 👥 Build a 5-player fantasy team per sport (max 2 from the same team)
-- 👑 Captain feature — captain earns 2× points
-- 🔮 Match predictions (winner +2 pts, exact score +4 pts)
-- 📊 Auto-calculated rankings — overall and per sport
-- 🛡 Admin role for entering match results & player stats
-- 📱 Mobile-friendly responsive UI
+- 🔐 Login com e-mail/senha via Firebase Auth
+- ⚽ 🏀 🏐 Três esportes, quatro times cada
+- 👥 Monte um time de fantasy com 5 jogadores por esporte (máximo 2 do mesmo time)
+- 👑 Recurso de capitão — o capitão pontua em dobro
+- 🔮 Palpites de partidas (acertar o vencedor +2 pts, placar exato +4 pts)
+- 📊 Rankings calculados automaticamente — geral e por esporte
+- 🛡 Papel de administrador para lançar resultados e estatísticas dos jogadores
+- 📱 Interface responsiva, adaptada para celular
 
-## 🧰 Tech Stack
+## 🧰 Tecnologias
 
-| Layer    | Choice                     |
-|----------|----------------------------|
-| Frontend | React 18 + Vite            |
-| Routing  | React Router v6            |
-| Backend  | Firebase (Auth + Firestore)|
-| Hosting  | Vercel                     |
+| Camada     | Escolha                     |
+|------------|-----------------------------|
+| Frontend   | React 18 + Vite             |
+| Rotas      | React Router v6             |
+| Backend    | Firebase (Auth + Firestore) |
+| Hospedagem | Vercel                      |
 
-No traditional backend — all logic runs client-side against Firestore.
+Sem backend tradicional — toda a lógica roda no cliente, direto contra o Firestore.
 
 ---
 
-## 🚀 Quick start
+## 🚀 Começando
 
-### 1. Install dependencies
+### 1. Instale as dependências
 
 ```bash
 npm install
 ```
 
-### 2. Create a Firebase project
+### 2. Crie um projeto no Firebase
 
-1. Go to [console.firebase.google.com](https://console.firebase.google.com), create a new project.
-2. **Authentication** → Get started → enable **Email/Password**.
-3. **Firestore Database** → Create database → start in production mode → pick a region.
-4. **Project settings** → **Your apps** → Web (`</>`) → register an app and copy the config.
+1. Acesse [console.firebase.google.com](https://console.firebase.google.com) e crie um novo projeto.
+2. **Authentication** → Vamos começar → ative **E-mail/senha**.
+3. **Firestore Database** → Criar banco de dados → inicie em modo produção → escolha uma região.
+4. **Configurações do projeto** → **Seus apps** → Web (`</>`) → registre um app e copie a config.
 
-### 3. Configure environment
+### 3. Configure o ambiente
 
-Copy `.env.example` to `.env` and fill in your Firebase credentials:
+Copie o `.env.example` para `.env` e preencha com as credenciais do seu Firebase:
 
 ```bash
 cp .env.example .env
@@ -74,45 +74,45 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=...
 VITE_FIREBASE_APP_ID=...
 ```
 
-### 4. Apply Firestore security rules
+### 4. Aplique as regras de segurança do Firestore
 
-In the Firebase console → **Firestore** → **Rules**, paste the contents of `firestore.rules` and publish.
+No console do Firebase → **Firestore** → **Regras**, cole o conteúdo de `firestore.rules` e publique.
 
-### 5. Run locally
+### 5. Rode localmente
 
 ```bash
 npm run dev
 ```
 
-Open <http://localhost:5173>.
+Abra <http://localhost:5173>.
 
-### 6. Seed initial data
+### 6. Popule os dados iniciais (seed)
 
-The first time you run the app, the database is empty. Seed it once:
+Na primeira execução, o banco está vazio. Popule uma única vez:
 
-1. Register a user, then log in.
-2. Open the browser DevTools console.
-3. Paste:
+1. Cadastre um usuário e faça login.
+2. Abra o console do DevTools do navegador.
+3. Cole:
    ```js
    import('/src/utils/seed.js').then(m => m.seed());
    ```
-4. You should see `✅ Seed complete: 12 teams, 48 players, 7 matches.`
+4. Você deve ver `✅ Seed complete: 12 teams, 48 players, 7 matches.`
 
-> **Note:** seeding writes to `teams`, `players`, and `matches`. Because security rules restrict writes to admins, **temporarily** loosen the rules during seed:
+> **Observação:** o seed escreve em `teams`, `players` e `matches`. Como as regras de segurança só permitem escrita para admins, **afrouxe temporariamente** as regras durante o seed:
 > ```
 > match /teams/{id}    { allow write: if request.auth != null; }
 > match /players/{id}  { allow write: if request.auth != null; }
 > match /matches/{id}  { allow write: if request.auth != null; }
 > ```
-> Restore the original rules after seeding.
+> Restaure as regras originais depois de popular.
 
-### 7. Promote yourself to admin
+### 7. Promova-se a administrador
 
-Find your user document in Firestore → `users/{your-uid}` → change `role` from `"user"` to `"admin"`. Refresh the app — the **Admin** link appears in the nav and you can enter match results.
+Encontre o documento do seu usuário no Firestore → `users/{seu-uid}` → mude o `role` de `"user"` para `"admin"`. Recarregue o app — o link **Admin** aparece no menu e você pode lançar resultados.
 
 ---
 
-## 🗄 Firestore schema
+## 🗄 Modelo do Firestore
 
 ```
 users/{uid}
@@ -131,15 +131,15 @@ players/{playerId}
   id           string
   name         string
   teamId       string  → teams/{teamId}
-  sport        same as team
-  position     string  (e.g. 'GK', 'PG', 'SET')
+  sport        igual ao do time
+  position     string  (ex: 'GK', 'PG', 'SET')
 
 matches/{matchId}
   id            string
   sport         string
   homeTeamId    string
   awayTeamId    string
-  homeTeamName  string  (denormalized for display)
+  homeTeamName  string  (desnormalizado para exibição)
   awayTeamName  string
   date          number (ms)
   status        'scheduled' | 'finished'
@@ -158,7 +158,7 @@ predictions/{uid_matchId}
 user_teams/{uid_sport}
   uid          string
   sport        string
-  playerIds    string[]   // exactly 5
+  playerIds    string[]   // exatamente 5
   captainId    string|null
   updatedAt    number
 
@@ -166,60 +166,60 @@ scores/{uid}
   uid          string
   displayName  string
   total        number
-  bySport      { futsal, basketball, volleyball }  // numbers
+  bySport      { futsal, basketball, volleyball }  // números
   updatedAt    number
 ```
 
-### Document IDs are deterministic where it matters
+### IDs de documento determinísticos onde importa
 
-- `predictions/{uid}_{matchId}` — one prediction per user per match
-- `user_teams/{uid}_{sport}` — one team per user per sport
-- `scores/{uid}` — one score doc per user
+- `predictions/{uid}_{matchId}` — um palpite por usuário por partida
+- `user_teams/{uid}_{sport}` — um time por usuário por esporte
+- `scores/{uid}` — um documento de pontuação por usuário
 
-This avoids accidental duplicates and lets `setDoc` act as upsert.
-
----
-
-## 🧮 Scoring rules
-
-### Fantasy (per player)
-
-| Event       | Points |
-|-------------|--------|
-| Goal        | +5     |
-| Assist      | +3     |
-| Team win    | +2     |
-| Yellow card | -1     |
-| Red card    | -3     |
-
-If the player is your **captain**, points are doubled.
-
-### Predictions (per match)
-
-| Outcome                          | Points |
-|----------------------------------|--------|
-| Correct winner / draw            | +2     |
-| Exact score                      | +4     |
-
-The exact-score reward replaces (not stacks with) the +2.
-
-All rules live in `src/utils/scoring.js` — change the constants there.
+Isso evita duplicatas acidentais e faz o `setDoc` funcionar como upsert (insere ou atualiza).
 
 ---
 
-## 🔄 How rankings update
+## 🧮 Regras de pontuação
 
-When an admin saves a match result via the Admin page, the app calls `recomputeAllScores()` which:
+### Fantasy (por jogador)
 
-1. Reads every user, every finished match, every saved fantasy team, and every prediction.
-2. Sums fantasy + prediction points per sport for each user.
-3. Writes one document per user to `scores/{uid}`.
+| Evento             | Pontos |
+|--------------------|--------|
+| Gol                | +5     |
+| Assistência        | +3     |
+| Vitória do time    | +2     |
+| Cartão amarelo     | -1     |
+| Cartão vermelho    | -3     |
 
-For a small MVP league (dozens of users) this client-side recompute is perfectly fine. If the league grows, move this into a Cloud Function triggered by `onUpdate` of `matches`.
+Se o jogador for o seu **capitão**, os pontos são dobrados.
+
+### Palpites (por partida)
+
+| Resultado                     | Pontos |
+|-------------------------------|--------|
+| Vencedor / empate correto     | +2     |
+| Placar exato                  | +4     |
+
+A recompensa do placar exato **substitui** (não soma com) os +2.
+
+Todas as regras ficam em `src/utils/scoring.js` — mude as constantes por lá.
 
 ---
 
-## 📁 Project structure
+## 🔄 Como os rankings são atualizados
+
+Quando um admin salva o resultado de uma partida na página Admin, o app chama `recomputeAllScores()`, que:
+
+1. Lê todos os usuários, todas as partidas encerradas, todos os times de fantasy salvos e todos os palpites.
+2. Soma os pontos de fantasy + palpites por esporte, para cada usuário.
+3. Grava um documento por usuário em `scores/{uid}`.
+
+Para uma liga pequena de MVP (dezenas de usuários), esse recálculo no cliente é perfeitamente suficiente. Se a liga crescer, mova isso para uma Cloud Function disparada pelo `onUpdate` de `matches`.
+
+---
+
+## 📁 Estrutura do projeto
 
 ```
 uni-fantasy/
@@ -259,31 +259,31 @@ uni-fantasy/
 
 ---
 
-## ☁️ Deploy to Vercel
+## ☁️ Deploy na Vercel
 
-1. Push the repo to GitHub.
-2. Go to [vercel.com](https://vercel.com) → **New Project** → import the repo.
-3. Framework preset: **Vite** (auto-detected).
-4. Add the same `VITE_FIREBASE_*` env vars under **Environment Variables**.
-5. Deploy.
+1. Suba o repositório para o GitHub.
+2. Acesse [vercel.com](https://vercel.com) → **New Project** → importe o repositório.
+3. Preset de framework: **Vite** (detectado automaticamente).
+4. Adicione as mesmas variáveis `VITE_FIREBASE_*` em **Environment Variables**.
+5. Faça o deploy.
 
-`vercel.json` already rewrites all routes to `index.html` so client-side routing works on refresh.
+O `vercel.json` já redireciona todas as rotas para o `index.html`, então o roteamento no cliente funciona mesmo ao recarregar a página.
 
-Don't forget: in the Firebase console → **Authentication → Settings → Authorized domains**, add your `*.vercel.app` domain.
-
----
-
-## 🧭 Roadmap (post-MVP ideas)
-
-- Cloud Functions to recompute scores server-side
-- Real-time ranking via Firestore listeners
-- Player photos and team logos
-- Match locking — disable predictions once a match starts
-- Mini-leagues / private rooms
-- Push notifications for results
+Não esqueça: no console do Firebase → **Authentication → Settings → Authorized domains**, adicione o seu domínio `*.vercel.app`.
 
 ---
 
-## 📄 License
+## 🧭 Roadmap (ideias pós-MVP)
 
-MIT — do whatever you like.
+- Cloud Functions para recalcular pontuações no servidor
+- Ranking em tempo real via listeners do Firestore
+- Fotos dos jogadores e escudos dos times
+- Travamento de partida — bloquear palpites quando a partida começa
+- Mini-ligas / salas privadas
+- Notificações push de resultados
+
+---
+
+## 📄 Licença
+
+MIT — faça o que quiser.
