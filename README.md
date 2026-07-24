@@ -10,7 +10,7 @@
 
 Fantasy team building + match predictions across **futsal, basketball, and volleyball** (plus a World Cup mode), all powered by React + Firebase.
 
-🔗 **Live demo:** _coming soon_ (deploy on Vercel — see below — then drop the link here)
+🔗 **Live demo:** **<https://capitola.web.app/>**
 
 <!--
 📸 TIP (Tomás): add a screenshot or GIF of the app here — recruiters love a visual.
