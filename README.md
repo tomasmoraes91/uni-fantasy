@@ -10,7 +10,7 @@
 
 Montagem de times de fantasy + palpites de partidas em **futsal, basquete e vôlei** (mais um modo Copa do Mundo), tudo feito com React + Firebase.
 
-🔗 **Demo ao vivo:** **<https://capitola.web.app/>**
+🔗 **Ver online:** **<https://capitola.web.app/>**
 
 <!--
 📸 DICA (Tomás): adicione um print ou GIF do app aqui — é o que mais chama recrutador.
