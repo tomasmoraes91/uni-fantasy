@@ -1,0 +1,316 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    // Email confirmado (Google vem sempre verificado)
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+    // Admins "donos" reconhecidos pelo email do login (mantenha igual a src/utils/admins.js)
+    function isAdminEmail() {
+      return isSignedIn() && request.auth.token.email in [
+        'beicinn20@gmail.com',
+        'tomasmoraes@gmail.com',
+        'angelo.santos.penga@gmail.com'
+      ];
+    }
+    function isAdmin() {
+      return isAdminEmail()
+        || (isSignedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+    }
+    // O documento sendo criado/atualizado pertence ao usuário (campo uid no payload)
+    function ownsResource() {
+      return isSignedIn() && request.resource.data.uid == request.auth.uid;
+    }
+    // O documento existente (em delete/update) pertence ao usuário
+    function ownsExisting() {
+      return isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+    // Validação de formato do palpite: placares numéricos e em faixa sã.
+    function validPredictionScores() {
+      let d = request.resource.data;
+      return d.homeScore is number && d.homeScore >= 0 && d.homeScore <= 99
+          && d.awayScore is number && d.awayScore >= 0 && d.awayScore <= 99;
+    }
+    // displayName: string de tamanho são (cliente limita a 20; margem p/ legados).
+    function validUserData() {
+      return request.resource.data.get('displayName', '') is string
+          && request.resource.data.get('displayName', '').size() <= 40;
+    }
+    // Palpite de campeonato: os campos (IDs de time/jogador), se presentes, são strings.
+    function validEventPrediction() {
+      let d = request.resource.data;
+      return (!('champion' in d)    || d.champion is string)
+          && (!('runnerUp' in d)    || d.runnerUp is string)
+          && (!('thirdPlace' in d)  || d.thirdPlace is string)
+          && (!('fourthPlace' in d) || d.fourthPlace is string)
+          && (!('topScorer' in d)   || d.topScorer is string);
+    }
+    // Janela de palpite: liberado até 1h antes do início da partida.
+    // Espelha o cliente (isPredictionLocked): partida inexistente ou sem
+    // campo `date` → considerado aberto (não bloqueia). Uma leitura (get).
+    function predictionWindowOpen() {
+      let m = get(/databases/$(database)/documents/matches/$(request.resource.data.matchId));
+      return m == null
+        || !('date' in m.data)
+        || m.data.date == null
+        || request.time.toMillis() < m.data.date - 3600000;
+    }
+    // Mercado aberto p/ escalação (espelha isMarketOpen do cliente, formato atual
+    // { isOpen, closeAt }). Sem 'isOpen' (legado) → não bloqueia aqui.
+    function marketOpenFor(market) {
+      return !('isOpen' in market)
+        || (market.isOpen == true
+            && (!('closeAt' in market) || market.closeAt == null
+                || request.time.toMillis() < market.closeAt));
+    }
+    // Janela de escalação: evento inexistente / sem market → aberto. Uma leitura.
+    function lineupWindowOpen() {
+      let ev = get(/databases/$(database)/documents/events/$(request.resource.data.eventId));
+      return ev == null
+        || !('market' in ev.data)
+        || ev.data.market == null
+        || marketOpenFor(ev.data.market);
+    }
+    // Janela de palpite de CAMPEONATO: até 1h antes da 1ª partida do evento.
+    // Usa `event.predictionDeadline` (denormalizado nas escritas de partida, que
+    // são admin). Sem o campo → aberto (espelha o cliente). Uma leitura.
+    function eventPredictionWindowOpen() {
+      let ev = get(/databases/$(database)/documents/events/$(request.resource.data.eventId));
+      return ev == null
+        // Reabertura temporária pelo admin (eventPredReopenUntil no futuro)
+        || ev.data.get('eventPredReopenUntil', 0) > request.time.toMillis()
+        || !('predictionDeadline' in ev.data)
+        || ev.data.predictionDeadline == null
+        || request.time.toMillis() < ev.data.predictionDeadline - 3600000;
+    }
+    // Campos de IDENTIDADE da liga não podem mudar num update de não-dono
+    // (impede sequestro: virar createdBy, renomear, trocar modo, etc.).
+    function leagueCoreUnchanged() {
+      return request.resource.data.createdBy            == resource.data.createdBy
+        && request.resource.data.get('name','')        == resource.data.get('name','')
+        && request.resource.data.get('leagueMode','')  == resource.data.get('leagueMode','')
+        && request.resource.data.get('emoji','')       == resource.data.get('emoji','')
+        && request.resource.data.get('isPublic', false)== resource.data.get('isPublic', false)
+        && request.resource.data.get('inviteCode','')  == resource.data.get('inviteCode','')
+        && request.resource.data.get('eventId','')     == resource.data.get('eventId','');
+    }
+
+    /* ──────────────────────────────────────────────────────────────
+       MODELO: app social/competitivo. Usuários autenticados podem LER
+       os dados de jogo (times, jogadores, partidas, scores, escalações,
+       palpites, ligas, conquistas). A ESCRITA é restrita: cada usuário
+       só altera os próprios dados; coleções de gestão (eventos, times,
+       partidas, scores, conquistas) são exclusivas do admin.
+       ────────────────────────────────────────────────────────────── */
+
+    // USERS — leitura por qualquer autenticado (ranking/perfil).
+    // O próprio usuário cria/edita seu doc, MAS:
+    //  • não pode se autopromover (role travado, default 'user')
+    //  • só pode trocar o displayName enquanto nameChanged != true (1 vez)
+    // Admin (email ou role) pode tudo.
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId
+                    && request.resource.data.get('role', 'user') == 'user'
+                    && validUserData();
+      allow update: if isSignedIn() && request.auth.uid == userId
+                    && request.resource.data.get('role', 'user') == resource.data.get('role', 'user')
+                    && validUserData()
+                    && (
+                         resource.data.get('nameChanged', false) == false
+                         || request.resource.data.get('displayName', '') == resource.data.get('displayName', '')
+                       );
+      allow write: if isAdmin();
+    }
+
+    // USERS/PRIVATE — dados sensíveis (e-mail). Lido/escrito só pelo dono ou admin.
+    // O e-mail saiu do doc público `users` para não ser exposto a outros usuários.
+    match /users/{userId}/private/{docId} {
+      allow read, write: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // FRIENDS — usuário gerencia a própria lista (precisa email verificado)
+    match /users/{userId}/friends/{friendId} {
+      allow read:  if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId && isVerified();
+    }
+
+    // FRIEND REQUESTS — docId = UID de quem envia (fromUid)
+    match /users/{userId}/friendRequests/{fromUid} {
+      allow read:           if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == fromUid && isVerified();
+      allow delete:         if isSignedIn()
+                            && (request.auth.uid == userId || request.auth.uid == fromUid);
+    }
+
+    // EVENTS — leitura pública (autenticado), escrita só admin
+    match /events/{eventId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // TEAMS & PLAYERS — leitura pública, escrita só admin
+    match /teams/{teamId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /players/{playerId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // MATCHES — leitura pública, escrita só admin
+    match /matches/{matchId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // SCORES — leitura pública (rankings), escrita só admin (recálculo)
+    match /scores/{scoreId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // SCORES_BACKUP — snapshots de segurança antes do recálculo. Só admin.
+    match /scores_backup/{backupId} {
+      allow read, write: if isAdmin();
+    }
+
+    // SCORE_ADJUSTMENTS — ajustes manuais duráveis de pontos (lidos pelo
+    // recompute, escritos pelo painel). Só admin.
+    match /score_adjustments/{adjId} {
+      allow read, write: if isAdmin();
+    }
+
+    // SCORES_SUMMARY — agregado por evento (denormalização do ranking).
+    // Leitura pública (autenticado); escrita só admin (recompute).
+    match /scores_summary/{eventId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // AGGREGATES — pacotes (bundles) de players/teams num único doc, para
+    // ler 1 doc em vez da coleção inteira. Leitura pública; escrita só admin.
+    match /aggregates/{name} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // USER_TEAMS — leitura pública (ver time dos adversários é padrão).
+    // Escrita do próprio usuário (email verificado) e SÓ com o mercado aberto
+    // (não dá p/ trocar escalação após o fechamento da rodada); admin livre.
+    match /user_teams/{ut} {
+      allow read:           if isSignedIn();
+      allow create, update: if isAdmin()
+                            || (ownsResource() && isVerified() && lineupWindowOpen()
+                                && request.resource.data.get('playerIds', []).size() <= 50);
+      allow delete:         if (ownsExisting() && isVerified()) || isAdmin();
+    }
+
+    // PREDICTIONS — leitura pública (ranking de ligas / stats).
+    // Escrita só do dono (email verificado) e ATÉ 1h antes da partida; admin livre.
+    match /predictions/{predId} {
+      allow read:           if isSignedIn();
+      allow create, update: if isAdmin()
+                            || (ownsResource() && isVerified()
+                                && predId == request.auth.uid + '_' + request.resource.data.matchId
+                                && validPredictionScores()
+                                && predictionWindowOpen());
+      allow delete:         if (ownsExisting() && isVerified()) || isAdmin();
+    }
+
+    // EVENT_PREDICTIONS (palpites de campeonato) — escrita até 1h antes da 1ª
+    // partida; amarra o id a uid_eventId (integridade). Admin livre.
+    match /event_predictions/{epId} {
+      allow read:           if isSignedIn();
+      allow create, update: if isAdmin()
+                            || (ownsResource() && isVerified()
+                                && epId == request.auth.uid + '_' + request.resource.data.eventId
+                                && validEventPrediction()
+                                && eventPredictionWindowOpen());
+      allow delete:         if (ownsExisting() && isVerified()) || isAdmin();
+    }
+
+    // EVENT_PARTICIPANTS — quem entrou em qual evento
+    match /event_participants/{epId} {
+      allow read:           if isSignedIn();
+      allow create, update: if (ownsResource() && isVerified()) || isAdmin();
+      allow delete:         if (ownsExisting() && isVerified()) || isAdmin();
+    }
+
+    // USER_EVENT_PREFS (eventos ocultos pelo usuário)
+    match /user_event_prefs/{prefId} {
+      allow read:           if isSignedIn();
+      allow create, update: if (ownsResource() && isVerified()) || isAdmin();
+      allow delete:         if (ownsExisting() && isVerified()) || isAdmin();
+    }
+
+    // ROUND_LINEUPS — snapshot da escalação no início da rodada.
+    // Leitura pública; escrita só admin (capturado pelo painel).
+    match /round_lineups/{docId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // LINEUP_STATS — agregado de "mais escalados" por evento (denormalização).
+    // Leitura pública (autenticado); escrita só admin (gerado na captura).
+    match /lineup_stats/{eventId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // USER_BADGES — docId = uid. Leitura pública (exibir troféus).
+    // Admin concede/revoga; o próprio usuário pode atualizar (dispensar "novas").
+    match /user_badges/{userId} {
+      allow read:   if isSignedIn();
+      allow write:  if isAdmin();
+      // Usuário só pode mexer no campo `_new` (dispensar conquistas novas);
+      // não pode forjar/alterar as conquistas em si.
+      allow update: if isSignedIn() && request.auth.uid == userId && isVerified()
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['_new']);
+    }
+
+    // BADGE_ROUNDS — controle interno do motor de conquistas (admin)
+    match /badge_rounds/{eventId} {
+      allow read:  if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // LEAGUES — leitura pública. Criar: qualquer autenticado (createdBy = você).
+    // Entrada por solicitação: usuário se adiciona a pendingMembers; o dono
+    // (createdBy) move para members ao aprovar. Não-dono NÃO pode se adicionar
+    // diretamente a members. Membro pode sair; solicitante pode cancelar.
+    // Excluir: só o criador.
+    match /leagues/{leagueId} {
+      allow read:   if isSignedIn();
+      allow create: if isSignedIn() && isVerified() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdmin()
+                    || (isSignedIn() && isVerified() && (
+                      resource.data.createdBy == request.auth.uid           // dono: aprova/recusa/gerencia
+                      || (
+                           // não-dono: não pode alterar a identidade da liga…
+                           leagueCoreUnchanged()
+                           // …não pode entrar direto em members…
+                           && (!(request.auth.uid in request.resource.data.members)
+                               || request.auth.uid in resource.data.members)
+                           // …e só mexe na própria participação (solicitar/cancelar/sair).
+                           && (
+                                request.auth.uid in request.resource.data.pendingMembers  // solicitar
+                                || request.auth.uid in resource.data.pendingMembers        // cancelar pedido
+                                || request.auth.uid in resource.data.members               // sair
+                              )
+                         )
+                    ));
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // Qualquer coleção não listada acima é negada por padrão.
+  }
+}

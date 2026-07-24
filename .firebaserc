@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "unifantasy-c180e"
+  },
+  "targets": {
+    "unifantasy-c180e": {
+      "hosting": {
+        "capitola": [
+          "capitola"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Admin = email da lista (igual src/utils/admins.js e firestore.rules) OU
+    // doc users/{uid} com role == 'admin'.
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email in [
+          'beicinn20@gmail.com',
+          'tomasmoraes@gmail.com',
+          'angelo.santos.penga@gmail.com'
+        ]
+        || (firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+            && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    // Upload válido: até 2MB e do tipo imagem (espelha uploadService.js).
+    function validImage() {
+      return request.resource.size < 2 * 1024 * 1024
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // Assets do jogo (fotos de jogador, escudos, logos): leitura pública,
+    // escrita só admin. São gerenciados pelo painel administrativo.
+    match /players/{file=**} {
+      allow read:  if true;
+      allow write: if isAdmin() && validImage();
+    }
+    match /teams/{file=**} {
+      allow read:  if true;
+      allow write: if isAdmin() && validImage();
+    }
+    match /events/{file=**} {
+      allow read:  if true;
+      allow write: if isAdmin() && validImage();
+    }
+
+    // Qualquer outro caminho: leitura pública, escrita negada.
+    match /{path=**} {
+      allow read:  if true;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+*.log
+scripts/service-account.json
+
+# Firebase (cache de deploy)
+.firebase/
+firebase-debug.log
+
+# Config local do Claude Code
+.claude/settings.local.json
