@@ -12,12 +12,6 @@ Montagem de times de fantasy + palpites de partidas em **futsal, basquete e vôl
 
 🔗 **Ver online:** **<https://capitola.web.app/>**
 
-<!--
-📸 DICA (Tomás): adicione um print ou GIF do app aqui — é o que mais chama recrutador.
-   Coloque a imagem numa pasta "docs" (ex: docs/screenshot.png) e descomente a linha abaixo.
--->
-<!-- ![Tela do UniFantasy](docs/screenshot.png) -->
-
 ## ✨ Funcionalidades
 
 - 🔐 Login com e-mail/senha via Firebase Auth
